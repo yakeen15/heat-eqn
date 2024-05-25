@@ -1,5 +1,9 @@
 import numpy as np
 
+class BoundaryCondition():
+    def apply(self, u):
+        raise NotImplementedError("This method should be overriden by subclasses")
+
 class RectHeat:
     def __init__(self, Lx=1.0, Ly=1.0, Nx=10, Ny=10, T=1.0, Nt=1):
         # Initialize the dimensions and the solution array
@@ -11,8 +15,10 @@ class RectHeat:
         self.dy = Ly/(Ny-1)
         self.T = T 
         self.Nt = Nt
+        self.alpha = 1.0 # Thermal conduction coefficient
         self.u = np.zeros((Nx, Ny, Nt))  # Temperature distribution u(x,y,t)
         self.icfunc = lambda x, y: 0
+        self.bc = []
         self.eqn = np.zeros((Nx*Ny, Nx*Ny))
        
     def __str__(self):
