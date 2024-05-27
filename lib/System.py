@@ -83,11 +83,33 @@ class RectHeat:
         # For Neumann intersections : use the modified stencil
         # For Mixed intersections : cry
     
+    def numunk(self):
+        Dx = 0
+        Dy = 0
+        if isinstance(self.bc[0], Dirichlet):
+            Dx = Dx + 1
+        if isinstance(self.bc[1], Dirichlet):
+            Dx = Dx + 1
+        if isinstance(self.bc[2], Dirichlet):
+            Dy = Dy + 1
+        if isinstance(self.bc[3], Dirichlet):
+            Dy = Dy + 1
+        return (self.Nx-Dx)*(self.Ny-Dy)
+
+
+    def geteqn(self, nx, ny):
+        # Will return the coefficients in Nx*Ny vector for the equation at the point (nx, ny)
+        # If the point is part of a dirichlet boundary, return a all zeros Nx*Ny vector
+        # Check bounds
+        temp = np.zeros((self.Nx,self.Ny))
+        if (nx == 0 and isinstance(self.bc[0], Dirichlet)) or (nx == self.Nx-1 and isinstance(self.bc[1], Dirichlet)) or (ny == 0 and isinstance(self.bc[2], Dirichlet)) or (ny == self.Ny-1 and isinstance(self.bc[3], Dirichlet)):
+            return np.reshape(temp,[self.Nx*self.Ny])
+        else:
+            pass
+
     def eqnForm(self, nt):
         # Take the self.eqn matrix (Nx*Ny) and populate it according to the stencil
         a = self.alpha*self.dt/self.dx**2
         b = self.alpha*self.dt/self.dy**2
-        for k in range(self.Nx*self.Ny):
-            pass
-        temp = np.zeros((self.Nx,self.Ny))
+        # We will check for the boundaries, if the point is part of a dirichlet boundary we move on to the next point
         
