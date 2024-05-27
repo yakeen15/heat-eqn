@@ -99,35 +99,24 @@ class RectHeat:
         return Dx, Dy
 
 
-    def geteqn(self, nx, ny, nt=0):
+    def geteqn(self, nx, ny, nt=1):
         # This will return a (Nx-Dx,Ny-Dy) sized vector of coefficients associated with the equation for (nx, ny) point
         # The point (nx, ny) must be an interior (that is, nx > 0 and ny > 0)
-        Dx, Dy = self.numunk()
-        print([Dx,Dy])
         a = self.alpha*self.dt/self.dx**2
         b = self.alpha*self.dt/self.dy**2
-        temp = np.zeros((self.Nx-Dx,self.Ny-Dy))
-        print(np.shape(temp))
-        cost = 0
-        if nx-1==0 and isinstance(self.bc[0], Dirichlet):
-            nx = nx - 1
-            cost = cost + (a*self.bc[0].q(nt*self.dt, ny*self.dy)) # Boundary value at left boundary
-            temp[nx, ny] = (1+2*a+2*b)
-            temp[nx+1, ny] = -a
-        elif nx+1 == self.Nx and isinstance(self.bc[1], Dirichlet):
-            cost = cost + (a*self.bc[1].q(nt*self.dt, ny*self.dy)) # Boundary value at right boundary
-            temp[nx, ny] = (1+2*a+2*b)
-            temp[nx-1, ny] = -a
-        if ny-1==0 and isinstance(self.bc[2], Dirichlet):
-            cost = cost + (b*self.bc[2].q(nt*self.dt, nx*self.dx)) # Boundary value at bottom boundary
-            temp[nx, ny] = (1+2*a+2*b)
-            temp[nx, ny+1] = -b
-        elif ny+1==self.Ny and isinstance(self.bc[3], Dirichlet):
-            cost = cost + (b*self.bc[3].q(nt*self.dt, nx*self.dx)) # Boundary value at top boundary
-            temp[nx, ny] = (1+2*a+2*b)
-            temp[nx, ny-1] = -b
-        return np.reshape(temp, (self.Nx-Dx)*(self.Ny-Dy)), cost
-        
+        temp = np.zeros((self.Nx,self.Ny))
+        temp[nx, ny] = 1+2*a+2*b
+        temp[nx, ny-1], temp[nx, ny+1] = -a, -a 
+        temp[nx-1, ny], temp[nx+1, ny] = -b, -b
+        if isinstance(self.bc[0], Dirichlet):
+            temp = np.delete(temp, 0, axis=0)
+        if isinstance(self.bc[1], Dirichlet):
+            temp = np.delete(temp, -1, axis=0)
+        if isinstance(self.bc[2], Dirichlet):
+            temp = np.delete(temp, 0, axis=1)
+        if isinstance(self.bc[3], Dirichlet):
+            temp = np.delete(temp, -1, axis=1)
+        return np.reshape(temp, np.shape(temp)[0]*np.shape(temp)[1])
 
     def eqnForm(self, nt):
         # Take the self.eqn matrix (Nx*Ny) and populate it according to the stencil
