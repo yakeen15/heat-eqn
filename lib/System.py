@@ -43,7 +43,7 @@ class RectHeat:
         self.u = np.zeros((Nx, Ny, Nt))  # Temperature distribution u(x,y,t)
         self.icfunc = lambda x, y: 0
         self.source = source
-        self.bc = []
+        self.bc = [BoundaryCondition() for i in range(4)] # Empty BC, to be replaced by actual BCs
         self.eqn = np.zeros((Nx*Ny, Nx*Ny))
        
     def __str__(self):
@@ -84,6 +84,8 @@ class RectHeat:
         # For Mixed intersections : cry
     
     def numunk(self):
+        # Finds the number of unknowns
+        # In a dirichlet boundary, all the values at the boundaries are known functions
         Dx = 0
         Dy = 0
         if isinstance(self.bc[0], Dirichlet):
@@ -94,22 +96,41 @@ class RectHeat:
             Dy = Dy + 1
         if isinstance(self.bc[3], Dirichlet):
             Dy = Dy + 1
-        return (self.Nx-Dx)*(self.Ny-Dy)
+        return Dx, Dy
 
 
-    def geteqn(self, nx, ny):
-        # Will return the coefficients in Nx*Ny vector for the equation at the point (nx, ny)
-        # If the point is part of a dirichlet boundary, return a all zeros Nx*Ny vector
-        # Check bounds
-        temp = np.zeros((self.Nx,self.Ny))
-        if (nx == 0 and isinstance(self.bc[0], Dirichlet)) or (nx == self.Nx-1 and isinstance(self.bc[1], Dirichlet)) or (ny == 0 and isinstance(self.bc[2], Dirichlet)) or (ny == self.Ny-1 and isinstance(self.bc[3], Dirichlet)):
-            return np.reshape(temp,[self.Nx*self.Ny])
-        else:
-            pass
+    def geteqn(self, nx, ny, nt=0):
+        # This will return a (Nx-Dx,Ny-Dy) sized vector of coefficients associated with the equation for (nx, ny) point
+        # The point (nx, ny) must be an interior (that is, nx > 0 and ny > 0)
+        Dx, Dy = self.numunk()
+        print([Dx,Dy])
+        a = self.alpha*self.dt/self.dx**2
+        b = self.alpha*self.dt/self.dy**2
+        temp = np.zeros((self.Nx-Dx,self.Ny-Dy))
+        print(np.shape(temp))
+        cost = 0
+        if nx-1==0 and isinstance(self.bc[0], Dirichlet):
+            nx = nx - 1
+            cost = cost + (a*self.bc[0].q(nt*self.dt, ny*self.dy)) # Boundary value at left boundary
+            temp[nx, ny] = (1+2*a+2*b)
+            temp[nx+1, ny] = -a
+        elif nx+1 == self.Nx and isinstance(self.bc[1], Dirichlet):
+            cost = cost + (a*self.bc[1].q(nt*self.dt, ny*self.dy)) # Boundary value at right boundary
+            temp[nx, ny] = (1+2*a+2*b)
+            temp[nx-1, ny] = -a
+        if ny-1==0 and isinstance(self.bc[2], Dirichlet):
+            cost = cost + (b*self.bc[2].q(nt*self.dt, nx*self.dx)) # Boundary value at bottom boundary
+            temp[nx, ny] = (1+2*a+2*b)
+            temp[nx, ny+1] = -b
+        elif ny+1==self.Ny and isinstance(self.bc[3], Dirichlet):
+            cost = cost + (b*self.bc[3].q(nt*self.dt, nx*self.dx)) # Boundary value at top boundary
+            temp[nx, ny] = (1+2*a+2*b)
+            temp[nx, ny-1] = -b
+        return np.reshape(temp, (self.Nx-Dx)*(self.Ny-Dy)), cost
+        
 
     def eqnForm(self, nt):
         # Take the self.eqn matrix (Nx*Ny) and populate it according to the stencil
-        a = self.alpha*self.dt/self.dx**2
-        b = self.alpha*self.dt/self.dy**2
+        pass
         # We will check for the boundaries, if the point is part of a dirichlet boundary we move on to the next point
         
