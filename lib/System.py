@@ -98,7 +98,6 @@ class RectHeat:
             Dy = Dy + 1
         return Dx, Dy
 
-
     def geteqn(self, nx, ny, nt=1):
         # This will return a (Nx-Dx,Ny-Dy) sized vector of coefficients associated with the equation for (nx, ny) point
         # The point (nx, ny) must be an interior (that is, nx > 0 and ny > 0)
@@ -118,8 +117,17 @@ class RectHeat:
             temp = np.delete(temp, -1, axis=1)
         return np.reshape(temp, np.shape(temp)[0]*np.shape(temp)[1])
 
-    def eqnForm(self, nt):
-        # Take the self.eqn matrix (Nx*Ny) and populate it according to the stencil
-        pass
-        # We will check for the boundaries, if the point is part of a dirichlet boundary we move on to the next point
+    def getconst(self, nx, ny, nt):
+        a = self.alpha*self.dt/self.dx**2
+        b = self.alpha*self.dt/self.dy**2
+        cost = self.dt*self.source(nt*self.dt, nx*self.dx, ny*self.dy) + self.u[nx, ny, nt-1]
+        if nx-1==0 and isinstance(self.bc[0], Dirichlet):
+            cost = cost + b*self.bc[0].q(nt*self.dt, ny*self.dy)
+        elif nx+1==self.Nx-1 and isinstance(self.bc[1], Dirichlet):
+            cost = cost + b*self.bc[1].q(nt*self.dt, ny*self.dy)
+        if ny-1==0 and isinstance(self.bc[2], Dirichlet):
+            cost = cost + a*self.bc[2].q(nt*self.dt, nx*self.dx)
+        elif ny+1==self.Ny-1 and isinstance(self.bc[3], Dirichlet):
+            cost = cost + a*self.bc[3].q(nt*self.dt, nx*self.dx)
+        return cost
         
